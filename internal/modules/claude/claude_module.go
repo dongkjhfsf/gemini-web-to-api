@@ -16,4 +16,8 @@ func RegisterRoutes(app *fiber.App, c *ClaudeController) {
 	claudeGroup := app.Group("/claude")
 	claudeV1 := claudeGroup.Group("/v1")
 	c.Register(claudeV1)
+
+	// Register at root for standard compatibility (e.g. claudecode)
+	rootV1 := app.Group("/v1")
+	c.Register(rootV1)
 }

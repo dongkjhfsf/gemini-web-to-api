@@ -16,4 +16,8 @@ func RegisterRoutes(app *fiber.App, c *OpenAIController) {
 	openaiGroup := app.Group("/openai")
 	openaiV1 := openaiGroup.Group("/v1")
 	c.Register(openaiV1)
+
+	// Register at root for standard compatibility
+	rootV1 := app.Group("/v1")
+	c.Register(rootV1)
 }

@@ -13,6 +13,37 @@ import (
 	"go.uber.org/zap"
 )
 
+// GetMessageText safely extracts string text from a flexible message content
+func GetMessageText(content interface{}) string {
+	if content == nil {
+		return ""
+	}
+
+	// Case 1: Simple string
+	if s, ok := content.(string); ok {
+		return s
+	}
+
+	// Case 2: Array of content blocks (common in Claude/OpenAI Vision)
+	if blocks, ok := content.([]interface{}); ok {
+		var textParts []string
+		for _, block := range blocks {
+			if m, ok := block.(map[string]interface{}); ok {
+				// Claude format: {"type": "text", "text": "..."}
+				if t, ok := m["text"].(string); ok {
+					textParts = append(textParts, t)
+				}
+				// OpenAI format: {"type": "text", "text": "..."} - same!
+			} else if s, ok := block.(string); ok {
+				textParts = append(textParts, s)
+			}
+		}
+		return strings.Join(textParts, " ")
+	}
+
+	return ""
+}
+
 // BuildPromptFromMessages constructs a unified prompt from messages
 func BuildPromptFromMessages(messages []models.Message, systemPrompt string) string {
 	var promptBuilder strings.Builder
@@ -28,7 +59,8 @@ func BuildPromptFromMessages(messages []models.Message, systemPrompt string) str
 		} else if strings.EqualFold(msg.Role, "system") {
 			role = "System"
 		}
-		promptBuilder.WriteString(fmt.Sprintf("%s: %s\n", role, msg.Content))
+		text := GetMessageText(msg.Content)
+		promptBuilder.WriteString(fmt.Sprintf("%s: %s\n", role, text))
 	}
 
 	return strings.TrimSpace(promptBuilder.String())
@@ -42,7 +74,7 @@ func ValidateMessages(messages []models.Message) error {
 
 	allEmpty := true
 	for _, msg := range messages {
-		if strings.TrimSpace(msg.Content) != "" {
+		if strings.TrimSpace(GetMessageText(msg.Content)) != "" {
 			allEmpty = false
 			break
 		}

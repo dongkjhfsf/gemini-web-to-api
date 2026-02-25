@@ -2,6 +2,7 @@ package claude
 
 import (
 	"context"
+	"fmt"
 	"gemini-web-to-api/internal/modules/claude/dto"
 	"time"
 
@@ -38,22 +39,22 @@ func (h *ClaudeController) HandleModels(c fiber.Ctx) error {
 	return c.JSON(fiber.Map{
 		"data": []fiber.Map{
 			{
-				"id":           "claude-3-5-sonnet-20240620",
+				"id":           "claude-sonnet-4-6",
 				"type":         "model",
-				"created_at":   1718841600,
-				"display_name": "Claude 3.5 Sonnet",
+				"created_at":   1740000000,
+				"display_name": "Claude 4.6 Sonnet",
 			},
 			{
-				"id":           "claude-3-opus-20240229",
+				"id":           "claude-opus-4-6",
 				"type":         "model",
-				"created_at":   1709164800,
-				"display_name": "Claude 3 Opus",
+				"created_at":   1740000000,
+				"display_name": "Claude 4.6 Opus",
 			},
 			{
-				"id":           "claude-3-7-sonnet-20250219",
+				"id":           "claude-haiku-4-5",
 				"type":         "model",
-				"created_at":   1739923200,
-				"display_name": "Claude 3.7 Sonnet",
+				"created_at":   1740000000,
+				"display_name": "Claude 4.5 Haiku",
 			},
 		},
 	})
@@ -92,9 +93,10 @@ func (h *ClaudeController) HandleModelByID(c fiber.Ctx) error {
 func (h *ClaudeController) HandleMessages(c fiber.Ctx) error {
 	var req dto.MessageRequest
 	if err := c.Bind().Body(&req); err != nil {
+		h.log.Error("Failed to bind JSON body", zap.Error(err), zap.ByteString("body", c.Body()))
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"type":  "error",
-			"error": fiber.Map{"type": "invalid_request_error", "message": "Invalid JSON body"},
+			"error": fiber.Map{"type": "invalid_request_error", "message": fmt.Sprintf("Invalid JSON body: %v", err)},
 		})
 	}
 
@@ -126,6 +128,9 @@ func (h *ClaudeController) HandleMessages(c fiber.Ctx) error {
 func (h *ClaudeController) HandleCountTokens(c fiber.Ctx) error {
 	var req dto.MessageRequest
 	if err := c.Bind().Body(&req); err != nil {
+		h.log.Warn("Failed to bind Claude count request body",
+			zap.Error(err),
+			zap.ByteString("body", c.Body()))
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"type":  "error",
 			"error": fiber.Map{"type": "invalid_request_error", "message": "Invalid JSON body"},
@@ -133,9 +138,15 @@ func (h *ClaudeController) HandleCountTokens(c fiber.Ctx) error {
 	}
 
 	// Simple estimation
-	totalChars := len(req.System)
+	systemText := ""
+	if s, ok := req.System.(string); ok {
+		systemText = s
+	}
+	totalChars := len(systemText)
 	for _, m := range req.Messages {
-		totalChars += len(m.Content)
+		if s, ok := m.Content.(string); ok {
+			totalChars += len(s)
+		}
 	}
 
 	return c.JSON(fiber.Map{

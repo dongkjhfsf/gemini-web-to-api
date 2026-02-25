@@ -7,7 +7,7 @@ type MessageRequest struct {
 	Model     string           `json:"model"`
 	MaxTokens int              `json:"max_tokens"`
 	Messages  []models.Message `json:"messages"`
-	System    string           `json:"system,omitempty"`
+	System    interface{}      `json:"system,omitempty"` // Can be string or []interface{}
 	Stream    bool             `json:"stream,omitempty"`
 }
 

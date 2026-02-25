@@ -2,8 +2,8 @@ package models
 
 // Message represents a chat message (shared across OpenAI, Claude, etc)
 type Message struct {
-	Role    string `json:"role"`
-	Content string `json:"content"`
+	Role    string      `json:"role"`
+	Content interface{} `json:"content"` // Can be string or []interface{}
 }
 
 // ModelListResponse represents the list of models

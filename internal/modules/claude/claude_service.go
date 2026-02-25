@@ -3,6 +3,7 @@ package claude
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"gemini-web-to-api/internal/commons/models"
 	common "gemini-web-to-api/internal/commons/utils"
@@ -32,12 +33,30 @@ func (s *ClaudeService) GenerateMessage(ctx context.Context, req dto.MessageRequ
 	}
 
 	// Logic: Build Prompt
-	prompt := common.BuildPromptFromMessages(req.Messages, req.System)
+	systemText := common.GetMessageText(req.System)
+	prompt := common.BuildPromptFromMessages(req.Messages, systemText)
 	if prompt == "" {
 		return nil, fmt.Errorf("no valid content in messages")
 	}
 
-	opts := []providers.GenerateOption{} // Model is usually handled by client or implicitly
+	// Model mapping logic
+	targetModel := "gemini-3-pro" // Default for sonnet
+	modelName := strings.ToLower(req.Model)
+	if modelName == "" {
+		modelName = "claude-sonnet-4-6"
+	}
+
+	if strings.Contains(modelName, "opus") {
+		targetModel = "gemini-3.1-pro-preview"
+	} else if strings.Contains(modelName, "sonnet") {
+		targetModel = "gemini-3-pro"
+	} else if strings.Contains(modelName, "haiku") {
+		targetModel = "gemini-3-flash"
+	}
+
+	opts := []providers.GenerateOption{
+		providers.WithModel(targetModel),
+	}
 
 	// Logic: Call Provider
 	response, err := s.client.GenerateContent(ctx, prompt, opts...)
